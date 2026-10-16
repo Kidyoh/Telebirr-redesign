@@ -165,8 +165,8 @@ class _Featured extends StatelessWidget {
               payoff,
               style: TType.accentHeadline.copyWith(
                 color: ink,
-                fontSize: 22,
-                height: 1.05,
+                fontSize: 16,
+                height: 1.2,
               ),
             ),
           ],
@@ -229,10 +229,7 @@ class _NoResults extends StatelessWidget {
         children: [
           Text(
             'Nothing here yet',
-            style: TType.serifTitle.copyWith(
-              color: TB.ink,
-              fontStyle: FontStyle.italic,
-            ),
+            style: TType.calmTitle.copyWith(color: TB.ink),
           ),
           const SizedBox(height: TB.s8),
           Text(

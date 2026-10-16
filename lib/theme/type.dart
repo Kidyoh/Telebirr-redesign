@@ -2,11 +2,10 @@ import 'package:flutter/painting.dart';
 
 import 'tokens.dart';
 
-/// Type scale from the Kidyoh Apps system: Inter for UI, Instrument Serif
-/// (italic) for the payoff words, Noto Sans Ethiopic as the Amharic fallback.
+/// Type scale from the Kidyoh Apps system, upright only: Inter throughout,
+/// Noto Sans Ethiopic as the Amharic fallback. No italics anywhere.
 abstract final class TType {
   static const sans = 'Inter';
-  static const serif = 'InstrumentSerif';
   static const _fallback = ['NotoSansEthiopic'];
 
   static const numeralHero = TextStyle(
@@ -37,14 +36,15 @@ abstract final class TType {
     letterSpacing: -0.8,
   );
 
-  /// The italic second beat of a headline, 1.18× the line it sits in.
+  /// The second beat of a headline: same size as the line it follows,
+  /// set apart by weight and the accent colour (never italic).
   static const accentHeadline = TextStyle(
-    fontFamily: serif,
-    fontSize: 35,
-    height: 1.05,
-    fontStyle: FontStyle.italic,
-    fontWeight: FontWeight.w400,
-    letterSpacing: -0.2,
+    fontFamily: sans,
+    fontFamilyFallback: _fallback,
+    fontSize: 30,
+    height: 1.12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.8,
   );
 
   static const title1 = TextStyle(
@@ -65,20 +65,14 @@ abstract final class TType {
     letterSpacing: -0.2,
   );
 
-  static const serifTitle = TextStyle(
-    fontFamily: serif,
-    fontSize: 30,
-    height: 1.1,
-    fontWeight: FontWeight.w400,
-    letterSpacing: -0.3,
-  );
-
-  static const wordmark = TextStyle(
-    fontFamily: serif,
+  /// Calm titles: dialog titles, empty states.
+  static const calmTitle = TextStyle(
+    fontFamily: sans,
+    fontFamilyFallback: _fallback,
     fontSize: 26,
-    height: 1.1,
-    fontStyle: FontStyle.italic,
-    letterSpacing: -0.3,
+    height: 1.15,
+    fontWeight: FontWeight.w500,
+    letterSpacing: -0.5,
   );
 
   static const body = TextStyle(

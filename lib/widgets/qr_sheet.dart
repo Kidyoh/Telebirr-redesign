@@ -56,7 +56,7 @@ class _QrSheet extends StatelessWidget {
                   text: 'pay Kidus.',
                   style: TType.accentHeadline.copyWith(
                     color: TB.brandInk,
-                    fontSize: 28,
+                    fontSize: 22,
                   ),
                 ),
               ],

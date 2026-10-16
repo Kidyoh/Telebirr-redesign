@@ -131,7 +131,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen>
                                   text: 'sending to?',
                                   style: TType.accentHeadline.copyWith(
                                     color: TB.brand,
-                                    fontSize: 28,
+                                    fontSize: 22,
                                   ),
                                 ),
                               ],
@@ -582,7 +582,7 @@ class _SuccessOverlayState extends State<_SuccessOverlay>
                                 '${widget.amount.toStringAsFixed(2)} ETB',
                                 style: TType.accentHeadline.copyWith(
                                   color: const Color(0xFFFFF4C9),
-                                  fontSize: 44,
+                                  fontSize: 34,
                                 ),
                               ),
                               const SizedBox(height: TB.s8),

@@ -17,12 +17,12 @@ flutter pub get
 flutter run
 ```
 
-There are no third-party packages. The fonts (Inter, Instrument Serif and Noto Sans Ethiopic) are bundled in `assets/fonts/`.
+There are no third-party packages. The fonts (Inter and Noto Sans Ethiopic) are bundled in `assets/fonts/`.
 
 ## What changed from the original
 
 - **One hero per screen.** On Home, the balance is the one big number, set on the telebirr green with its concentric rings, which drift slowly. Endekise and Reward sit on frosted glass.
-- **Two-beat headlines**, such as "Selam, Kidus. *one app for everything.*", with the payoff in Instrument Serif italic.
+- **Two-beat headlines**, such as "Selam, Kidus. **one app for everything.**", with the payoff set apart by weight and colour. There is no italic type anywhere in the app.
 - **Bento quick actions.** Send Money is an ink feature card. Cash In/Out and Airtime are pastel cards, and the "Up to 35%" badge pops every few seconds.
 - **Floating glass nav** with a green indicator that springs between tabs. Scan QR is a glowing blue pill that only shows on Home.
 - **Payment** has category chips that jump to their section, and accordions that expand with a spring. The search filters the billers as you type.

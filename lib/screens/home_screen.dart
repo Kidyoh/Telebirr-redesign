@@ -160,8 +160,8 @@ class _QuickBento extends StatelessWidget {
                           'money',
                           style: TType.accentHeadline.copyWith(
                             color: TB.brand,
-                            fontSize: 30,
-                            height: 1,
+                            fontSize: 22,
+                            height: 1.15,
                           ),
                         ),
                         const SizedBox(height: TB.s8),
@@ -454,28 +454,35 @@ class _TextPromo extends StatelessWidget {
             bottom: -26,
             child: Icon(icon, size: 140, color: ink.withValues(alpha: 0.08)),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(eyebrow, style: TType.eyebrow.copyWith(color: ink)),
-              const SizedBox(height: TB.s8),
-              Text(
-                first,
-                style: TType.title1.copyWith(
-                  color: ink,
-                  fontWeight: FontWeight.w500,
-                ),
+          // Scale down rather than overflow at large text sizes.
+          Positioned.fill(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(eyebrow, style: TType.eyebrow.copyWith(color: ink)),
+                  const SizedBox(height: TB.s8),
+                  Text(
+                    first,
+                    style: TType.title1.copyWith(
+                      color: ink,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    payoff,
+                    style: TType.accentHeadline.copyWith(
+                      color: ink,
+                      fontSize: 22,
+                      height: 1.15,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                payoff,
-                style: TType.accentHeadline.copyWith(
-                  color: ink,
-                  fontSize: 28,
-                  height: 1.05,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

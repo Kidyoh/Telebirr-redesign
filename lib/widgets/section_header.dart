@@ -38,7 +38,7 @@ class SectionHeader extends StatelessWidget {
                     text: ' $payoff',
                     style: TType.accentHeadline.copyWith(
                       color: TB.brandInk,
-                      fontSize: 26,
+                      fontSize: 22,
                     ),
                   ),
               ],

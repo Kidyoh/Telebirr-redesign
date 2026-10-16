@@ -12,7 +12,6 @@ import 'package:telebirr/screens/send_money_screen.dart';
 Future<void> _loadFonts() async {
   final families = {
     'Inter': ['Regular', 'Medium', 'SemiBold', 'Bold'],
-    'InstrumentSerif': ['Regular', 'Italic'],
     'NotoSansEthiopic': ['Regular', 'SemiBold'],
   };
   for (final e in families.entries) {

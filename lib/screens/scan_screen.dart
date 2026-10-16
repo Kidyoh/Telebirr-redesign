@@ -96,7 +96,7 @@ class _ScanScreenState extends State<ScanScreen>
                         text: 'we do the rest.',
                         style: TType.accentHeadline.copyWith(
                           color: TB.brand,
-                          fontSize: 28,
+                          fontSize: 22,
                         ),
                       ),
                     ],
