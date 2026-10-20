@@ -8,6 +8,7 @@ import '../widgets/pressable.dart';
 import '../widgets/reveal.dart';
 import '../widgets/section_header.dart';
 import '../widgets/tab_header.dart';
+import 'engage_screen.dart';
 
 class AppsScreen extends StatefulWidget {
   const AppsScreen({super.key});
@@ -56,7 +57,7 @@ class _AppsScreenState extends State<AppsScreen> {
           ),
         ),
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(TB.s20, TB.s16, TB.s20, bottom + 120),
+          padding: EdgeInsets.fromLTRB(TB.s20, TB.s16, TB.s20, bottom + TB.s32),
           sliver: apps.isEmpty
               ? const SliverToBoxAdapter(child: _NoResults())
               : SliverGrid.builder(
@@ -88,7 +89,7 @@ class _FeaturedApps extends StatelessWidget {
       children: [
         Expanded(
           child: _Featured(
-            service: miniApps[3],
+            service: miniApps[4],
             eyebrow: 'TRAVEL',
             line: 'Fly with',
             payoff: 'one tap.',
@@ -99,7 +100,7 @@ class _FeaturedApps extends StatelessWidget {
         const SizedBox(width: TB.s12),
         Expanded(
           child: _Featured(
-            service: miniApps[4],
+            service: miniApps[5],
             eyebrow: 'IDENTITY',
             line: 'Your Fayda,',
             payoff: 'in your pocket.',
@@ -184,7 +185,14 @@ class _AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Pressable(
-      onTap: () {},
+      onTap: () {
+        if (service.label == engageApp.label) {
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).push(MaterialPageRoute(builder: (_) => const EngageScreen()));
+        }
+      },
       semanticLabel: service.label,
       child: Container(
         padding: const EdgeInsets.fromLTRB(TB.s8, TB.s16, TB.s8, TB.s12),

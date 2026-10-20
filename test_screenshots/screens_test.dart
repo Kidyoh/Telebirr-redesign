@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:telebirr/main.dart';
 import 'package:telebirr/screens/scan_screen.dart';
-import 'package:telebirr/screens/send_money_screen.dart';
 
 Future<void> _loadFonts() async {
   final families = {
@@ -55,8 +54,8 @@ void main() {
     'Home',
     'Payment',
     'Apps',
-    'Engage',
-    'Account',
+    'Analytics',
+    'Setting',
   ].indexed) {
     testWidgets('tab $tab', (tester) async {
       phone(tester);
@@ -77,31 +76,60 @@ void main() {
     });
   }
 
-  for (final (name, page) in [
-    ('send', const SendMoneyScreen()),
-    ('scan', const ScanScreen()),
-  ]) {
-    testWidgets('page $name', (tester) async {
-      phone(tester);
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(fontFamily: 'Inter'),
-          home: page,
-        ),
-      );
-      if (name == 'send') {
-        for (final k in ['3', '.', '5']) {
-          await tester.tap(find.text(k).last);
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-      }
-      await tester.pump(const Duration(seconds: 2));
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('../docs/screenshots/page-$name.png'),
-      );
-    });
-  }
+  testWidgets('send flow', (tester) async {
+    phone(tester);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const TelebirrApp());
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.text('Send Money'));
+    for (var f = 0; f < 3; f++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../docs/screenshots/send-1-empty.png'),
+    );
+    for (final k in ['1', '0', '0']) {
+      await tester.tap(find.text(k).last);
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(seconds: 1));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../docs/screenshots/send-2-amount.png'),
+    );
+    await tester.tap(find.text('Send'));
+    for (var f = 0; f < 3; f++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../docs/screenshots/send-3-confirm.png'),
+    );
+    await tester.tap(find.text('Confirm'), warnIfMissed: false);
+    for (var f = 0; f < 4; f++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../docs/screenshots/send-4-success.png'),
+    );
+  });
+
+  testWidgets('page scan', (tester) async {
+    phone(tester);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(fontFamily: 'Inter'),
+        home: const ScanScreen(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('../docs/screenshots/page-scan.png'),
+    );
+  });
 }

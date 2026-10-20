@@ -1,106 +1,27 @@
-import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../data/services.dart';
+import '../data/wallet.dart';
 import '../theme/tokens.dart';
 import '../theme/type.dart';
-import '../widgets/balance_hero.dart';
 import '../widgets/brand_tile.dart';
-import '../widgets/marquee.dart';
 import '../widgets/pressable.dart';
 import '../widgets/reveal.dart';
-import '../widgets/section_header.dart';
+import '../widgets/wave_card.dart';
+import 'scan_screen.dart';
 import 'send_money_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // Hero and ribbon share one sliver so the ribbon can tuck over the
-        // hero's rounded edge (earlier slivers paint on top of later ones).
-        const SliverToBoxAdapter(
-          child: Stack(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(bottom: 17),
-                child: BalanceHero(),
-              ),
-              Positioned(left: 0, right: 0, bottom: 0, child: _Ribbon()),
-            ],
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(TB.s20, TB.s24, TB.s20, 0),
-          sliver: SliverList.list(
-            children: [
-              const Reveal(index: 2, child: _QuickBento()),
-              const SizedBox(height: TB.s32),
-              const Reveal(index: 4, child: _PromoCarousel()),
-              const SizedBox(height: TB.s32),
-              const Reveal(index: 5, child: _ServicesGrid()),
-              const SizedBox(height: TB.s32),
-              const Reveal(index: 6, child: _RecentActivity()),
-              SizedBox(height: bottom + 180),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Ribbon ────────────────────────────────────────────────────────────────
-
-class _Ribbon extends StatelessWidget {
-  const _Ribbon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: TB.s40),
-      child: Container(
-        height: 34,
-        decoration: BoxDecoration(
-          color: TB.ribbon,
-          borderRadius: BorderRadius.circular(TB.rPill),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x4DF7B731),
-              blurRadius: 18,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Marquee(
-          text: 'ONE APP FOR ALL YOUR NEEDS',
-          style: TType.eyebrow.copyWith(
-            color: TB.ribbonInk,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Quick actions bento ───────────────────────────────────────────────────
-
-class _QuickBento extends StatelessWidget {
-  const _QuickBento();
-
-  void _openSend(BuildContext context) {
+  static void openSend(BuildContext context, {Contact? to}) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: Motion.slow,
         reverseTransitionDuration: Motion.medium,
-        pageBuilder: (_, _, _) => const SendMoneyScreen(),
+        pageBuilder: (_, _, _) => SendMoneyScreen(initial: to),
         transitionsBuilder: (_, a, _, child) => FadeTransition(
           opacity: CurvedAnimation(parent: a, curve: Motion.easeOut),
           child: child,
@@ -111,93 +32,541 @@ class _QuickBento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 220,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    final top = MediaQuery.paddingOf(context).top;
+    return ColoredBox(
+      color: TB.ground,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(TB.s20, top + TB.s12, TB.s20, TB.s32),
         children: [
-          Expanded(
-            flex: 11,
+          const Reveal(child: _Header()),
+          const SizedBox(height: TB.s20),
+          const Reveal(index: 1, child: _BalanceCard()),
+          const SizedBox(height: TB.s16),
+          const Reveal(index: 2, child: _QuickActions()),
+          const SizedBox(height: TB.s24),
+          Reveal(
+            index: 3,
+            child: _SectionTitle(title: 'Recently Sent', onSeeAll: () {}),
+          ),
+          const SizedBox(height: TB.s12),
+          const Reveal(index: 4, child: _RecentlySent()),
+          const SizedBox(height: TB.s20),
+          Reveal(
+            index: 5,
             child: Pressable(
-              semanticLabel: 'Send Money',
-              onTap: () => _openSend(context),
-              child: Hero(
-                tag: 'send-card',
-                child: Container(
-                  padding: const EdgeInsets.all(TB.s20),
-                  decoration: BoxDecoration(
-                    color: TB.featureCard,
-                    borderRadius: BorderRadius.circular(TB.rXl),
-                    boxShadow: TB.shadowSoft,
-                  ),
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: const BoxDecoration(
-                            color: TB.brand,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.north_east_rounded,
-                            color: TB.featureCard,
-                            size: 22,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Send',
-                          style: TType.title1.copyWith(
-                            color: TB.onFeature,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          'money',
-                          style: TType.accentHeadline.copyWith(
-                            color: TB.brand,
-                            fontSize: 22,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: TB.s8),
-                        Text(
-                          'To anyone, in seconds',
-                          style: TType.caption.copyWith(
-                            color: TB.onFeature.withValues(alpha: 0.72),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              onTap: () {},
+              semanticLabel: 'Zemen Gebeya',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'assets/brand/promo_zemen.png',
+                  height: 104,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: TB.s12),
-          Expanded(
-            flex: 10,
-            child: Column(
+          const SizedBox(height: TB.s24),
+          const Reveal(index: 6, child: _FinancialServices()),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [TB.brandBright, TB.brandDeep],
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            Wallet.ownerName[0],
+            style: TType.bodyStrong.copyWith(color: Colors.white, fontSize: 17),
+          ),
+        ),
+        const SizedBox(width: TB.s12),
+        Text('Welcome back', style: TType.uiLabel.copyWith(color: TB.ink)),
+        const Spacer(),
+        _IconButton(icon: Icons.search_rounded, label: 'Search', onTap: () {}),
+        const SizedBox(width: TB.s8),
+        _IconButton(
+          icon: Icons.notifications_none_rounded,
+          label: 'Notifications',
+          dot: true,
+          onTap: () {},
+        ),
+      ],
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  const _IconButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.dot = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      scale: Motion.pressRound,
+      semanticLabel: label,
+      onTap: onTap,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(icon, size: 24, color: TB.ink),
+            if (dot)
+              Positioned(
+                top: 7,
+                right: 8,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: TB.danger,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: TB.ground, width: 1.2),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Balance card ──────────────────────────────────────────────────────────
+
+class _BalanceCard extends StatefulWidget {
+  const _BalanceCard();
+
+  @override
+  State<_BalanceCard> createState() => _BalanceCardState();
+}
+
+class _BalanceCardState extends State<_BalanceCard> {
+  bool _hidden = true;
+
+  void _openScan() {
+    haptic(HapticKind.medium);
+    Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder(
+        transitionDuration: Motion.medium,
+        reverseTransitionDuration: Motion.fast,
+        pageBuilder: (_, _, _) => const ScanScreen(),
+        transitionsBuilder: (_, a, _, child) {
+          final t = CurvedAnimation(parent: a, curve: Motion.easeExpo);
+          return FadeTransition(
+            opacity: t,
+            child: ScaleTransition(
+              scale: Tween(begin: 1.06, end: 1.0).animate(t),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WaveCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _CardChip(),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _BalanceValue(hidden: _hidden),
+                    const SizedBox(height: 6),
+                    Text(
+                      'TOTAL BALANCE',
+                      style: TType.micro.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  child: _MiniCard(
-                    service: cashInOut,
-                    color: TB.brandMist,
-                    ink: TB.brandShade,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SUPER APP',
+                        style: TType.title2.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'One App For All Your Needs',
+                        style: TType.micro.copyWith(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: TB.s12),
-                Expanded(
-                  child: _MiniCard(
-                    service: airtime,
-                    color: TB.paperButter,
-                    ink: TB.pastelAmberInk,
+                Pressable(
+                  scale: Motion.pressRound,
+                  haptic: HapticKind.none,
+                  semanticLabel: 'Scan QR',
+                  onTap: _openScan,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
+                const SizedBox(width: TB.s12),
+                _PrivacySwitch(
+                  on: _hidden,
+                  onChanged: (v) => setState(() => _hidden = v),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The two overlapping discs in a frosted pill at the card's top-left.
+class _CardChip extends StatelessWidget {
+  const _CardChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 26,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(TB.rPill),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 4,
+            top: 3,
+            child: _disc(Colors.white.withValues(alpha: 0.45)),
+          ),
+          Positioned(
+            left: 16,
+            top: 3,
+            child: _disc(Colors.white.withValues(alpha: 0.8)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _disc(Color c) => Container(
+    width: 20,
+    height: 20,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
+}
+
+/// Balance that crossfades through a blur between stars and the figure.
+class _BalanceValue extends StatelessWidget {
+  const _BalanceValue({required this.hidden});
+
+  final bool hidden;
+
+  @override
+  Widget build(BuildContext context) {
+    final big = TType.title1.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.5,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return ValueListenableBuilder<double>(
+      valueListenable: Wallet.balance,
+      builder: (context, balance, _) {
+        final parts = formatEtb(balance).split('.');
+        return TweenAnimationBuilder<double>(
+          tween: Tween(end: hidden ? 1 : 0),
+          duration: Motion.medium,
+          curve: Motion.easeOut,
+          builder: (context, h, _) {
+            return Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                Opacity(
+                  opacity: 1 - h,
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: 10 * h,
+                      sigmaY: 10 * h,
+                    ),
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: parts[0]),
+                          TextSpan(
+                            text: '.${parts[1]}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const TextSpan(
+                            text: ' ETB',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      style: big,
+                    ),
+                  ),
+                ),
+                if (h > 0)
+                  Opacity(
+                    opacity: h,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(text: '******'),
+                          TextSpan(
+                            text: '***',
+                            style: big.copyWith(fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      style: big,
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// The white switch on the card: on hides the balance.
+class _PrivacySwitch extends StatelessWidget {
+  const _PrivacySwitch({required this.on, required this.onChanged});
+
+  final bool on;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      scale: Motion.pressPill,
+      semanticLabel: on ? 'Show balance' : 'Hide balance',
+      onTap: () => onChanged(!on),
+      child: AnimatedContainer(
+        duration: Motion.fast,
+        width: 40,
+        height: 22,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: on
+              ? Colors.white.withValues(alpha: 0.35)
+              : Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(TB.rPill),
+        ),
+        child: AnimatedAlign(
+          duration: Motion.medium,
+          curve: Motion.easeSpring,
+          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 16,
+            height: 16,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Quick actions ─────────────────────────────────────────────────────────
+
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _ActionCard(
+              title: 'Send Money',
+              subtitle: 'Fast & Easy',
+              icon: Icons.north_east_rounded,
+              background: TB.night,
+              iconFill: TB.brand,
+              iconColor: TB.night,
+              heroTag: 'send-card',
+              onTap: () => HomeScreen.openSend(context),
+            ),
+          ),
+          const SizedBox(width: TB.s12),
+          Expanded(
+            child: _ActionCard(
+              title: 'Airtime/Package',
+              subtitle: 'Top Up Now',
+              icon: Icons.inventory_2_outlined,
+              background: TB.brand,
+              iconFill: Colors.white,
+              iconColor: TB.brandDeep,
+              badge: 'Up to 35%',
+              onTap: () {},
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.background,
+    required this.iconFill,
+    required this.iconColor,
+    required this.onTap,
+    this.badge,
+    this.heroTag,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color background;
+  final Color iconFill;
+  final Color iconColor;
+  final VoidCallback onTap;
+  final String? badge;
+
+  /// When set, the card's background flies into the next screen's header.
+  final String? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = Container(
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+    return Pressable(
+      semanticLabel: title,
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: heroTag == null ? bg : Hero(tag: heroTag!, child: bg),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: iconFill,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 17, color: iconColor),
+                    ),
+                    const Spacer(),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TType.bodyStrong.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TType.micro.copyWith(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w400,
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+                if (badge != null)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: _Pulse(child: RibbonBadge(text: badge!)),
+                  ),
               ],
             ),
           ),
@@ -207,55 +576,7 @@ class _QuickBento extends StatelessWidget {
   }
 }
 
-class _MiniCard extends StatelessWidget {
-  const _MiniCard({
-    required this.service,
-    required this.color,
-    required this.ink,
-  });
-
-  final Service service;
-  final Color color;
-  final Color ink;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      semanticLabel: service.label,
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(TB.s16, TB.s12, TB.s12, TB.s12),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(TB.rLg),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(service.icon, color: ink, size: 24),
-                const Spacer(),
-                Text(
-                  service.label,
-                  style: TType.bodyStrong.copyWith(color: ink, height: 1.15),
-                ),
-              ],
-            ),
-            if (service.badge != null)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: _Pulse(child: RibbonBadge(text: service.badge!)),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A gentle pop that repeats every few seconds to draw the eye to an offer.
+/// A gentle pop every few seconds to draw the eye to an offer.
 class _Pulse extends StatefulWidget {
   const _Pulse({required this.child});
 
@@ -283,7 +604,6 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
       animation: _c,
       child: widget.child,
       builder: (context, child) {
-        // Pop only in the first ~15% of each cycle, rest is still.
         final v = _c.value < 0.15 ? _c.value / 0.15 : 1.0;
         final s = v >= 1 ? 1.0 : 1 + 0.08 * (1 - (2 * v - 1).abs());
         return Transform.scale(scale: s, child: child);
@@ -292,224 +612,140 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
   }
 }
 
-// ── Promo carousel ────────────────────────────────────────────────────────
+// ── Sections ──────────────────────────────────────────────────────────────
 
-class _PromoCarousel extends StatefulWidget {
-  const _PromoCarousel();
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, required this.onSeeAll});
 
-  @override
-  State<_PromoCarousel> createState() => _PromoCarouselState();
-}
-
-class _PromoCarouselState extends State<_PromoCarousel> {
-  final _controller = PageController(viewportFraction: 0.9);
-  Timer? _timer;
-  int _page = 0;
-  static const _count = 3;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!_controller.hasClients) return;
-      final next = (_page + 1) % _count;
-      _controller.animateToPage(
-        next,
-        duration: Motion.slow,
-        curve: Motion.easeExpo,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
+  final String title;
+  final VoidCallback onSeeAll;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        SizedBox(
-          height: 150,
-          child: OverflowBox(
-            maxWidth: MediaQuery.sizeOf(context).width,
-            child: PageView(
-              controller: _controller,
-              physics: const BouncingScrollPhysics(),
-              onPageChanged: (i) => setState(() => _page = i),
-              children: [
-                _promoFrame(
-                  0,
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(TB.rLg),
-                    child: Image.asset(
-                      'assets/brand/promo_zemen.png',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    ),
-                  ),
-                ),
-                _promoFrame(
-                  1,
-                  const _TextPromo(
-                    eyebrow: 'UTILITY · NO QUEUES',
-                    first: 'Pay every bill',
-                    payoff: 'from your couch.',
-                    color: TB.paperSky,
-                    ink: Color(0xFF0B3F5F),
-                    icon: Icons.bolt_rounded,
-                  ),
-                ),
-                _promoFrame(
-                  2,
-                  const _TextPromo(
-                    eyebrow: 'AIRTIME · PACKAGES',
-                    first: 'Top up and save',
-                    payoff: 'up to 35%.',
-                    color: TB.paperButter,
-                    ink: TB.pastelAmberInk,
-                    icon: Icons.celebration_outlined,
-                  ),
-                ),
-              ],
-            ),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TType.bodyStrong.copyWith(color: TB.ink, fontSize: 15),
           ),
         ),
-        const SizedBox(height: TB.s12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < _count; i++)
-              AnimatedContainer(
-                duration: Motion.medium,
-                curve: Motion.easeSpring,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _page ? 22 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: i == _page ? TB.brandDeep : TB.track,
-                  borderRadius: BorderRadius.circular(TB.rPill),
-                ),
-              ),
-          ],
+        Pressable(
+          scale: Motion.pressPill,
+          onTap: onSeeAll,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text('see all', style: TType.caption.copyWith(fontSize: 12)),
+          ),
         ),
       ],
     );
   }
-
-  /// Parallax-ish depth: the off-centre pages shrink slightly.
-  Widget _promoFrame(int i, Widget child) {
-    return AnimatedBuilder(
-      animation: _controller,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Pressable(onTap: () {}, child: child),
-      ),
-      builder: (context, child) {
-        var d = 0.0;
-        if (_controller.hasClients && _controller.position.haveDimensions) {
-          d = ((_controller.page ?? 0) - i).abs().clamp(0.0, 1.0);
-        } else {
-          d = i == 0 ? 0 : 1;
-        }
-        return Transform.scale(scale: 1 - 0.06 * d, child: child);
-      },
-    );
-  }
 }
 
-class _TextPromo extends StatelessWidget {
-  const _TextPromo({
-    required this.eyebrow,
-    required this.first,
-    required this.payoff,
-    required this.color,
-    required this.ink,
-    required this.icon,
-  });
-
-  final String eyebrow;
-  final String first;
-  final String payoff;
-  final Color color;
-  final Color ink;
-  final IconData icon;
+class _RecentlySent extends StatelessWidget {
+  const _RecentlySent();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(TB.s20),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(TB.rLg),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -18,
-            bottom: -26,
-            child: Icon(icon, size: 140, color: ink.withValues(alpha: 0.08)),
-          ),
-          // Scale down rather than overflow at large text sizes.
-          Positioned.fill(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(eyebrow, style: TType.eyebrow.copyWith(color: ink)),
-                  const SizedBox(height: TB.s8),
-                  Text(
-                    first,
-                    style: TType.title1.copyWith(
-                      color: ink,
-                      fontWeight: FontWeight.w500,
+    return SizedBox(
+      height: 62,
+      child: OverflowBox(
+        maxWidth: MediaQuery.sizeOf(context).width,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: TB.s20),
+          itemCount: recentContacts.length,
+          separatorBuilder: (_, _) => const SizedBox(width: TB.s12),
+          itemBuilder: (context, i) {
+            final c = recentContacts[i];
+            return Pressable(
+              semanticLabel: 'Send to ${c.name}',
+              onTap: () => HomeScreen.openSend(context, to: c),
+              child: Container(
+                width: 178,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(TB.rMd),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: TB.ground,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: TB.inkFaint,
+                        size: 22,
+                      ),
                     ),
-                  ),
-                  Text(
-                    payoff,
-                    style: TType.accentHeadline.copyWith(
-                      color: ink,
-                      fontSize: 22,
-                      height: 1.15,
+                    const SizedBox(width: TB.s8),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TType.caption.copyWith(
+                              color: TB.ink,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Sent by you • ${c.lastSent}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TType.micro.copyWith(
+                              color: TB.inkFaint,
+                              fontWeight: FontWeight.w400,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-// ── Services grid ─────────────────────────────────────────────────────────
-
-class _ServicesGrid extends StatefulWidget {
-  const _ServicesGrid();
+class _FinancialServices extends StatefulWidget {
+  const _FinancialServices();
 
   @override
-  State<_ServicesGrid> createState() => _ServicesGridState();
+  State<_FinancialServices> createState() => _FinancialServicesState();
 }
 
-class _ServicesGridState extends State<_ServicesGrid> {
-  bool _expanded = false;
+class _FinancialServicesState extends State<_FinancialServices> {
+  bool _all = false;
 
   @override
   Widget build(BuildContext context) {
-    final all = <Service>[zemen, ...homeServices];
-    final shown = _expanded ? all : all.take(7).toList();
+    final all = <Service>[cashInOut, zemen, ...homeServices];
+    final shown = _all ? all : all.take(8).toList();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Services', payoff: 'for every day'),
+        _SectionTitle(
+          title: 'Financial Services',
+          onSeeAll: () => setState(() => _all = !_all),
+        ),
         const SizedBox(height: TB.s16),
         AnimatedSize(
           duration: Motion.medium,
@@ -525,126 +761,16 @@ class _ServicesGridState extends State<_ServicesGrid> {
               crossAxisSpacing: TB.s8,
               childAspectRatio: 0.74,
             ),
-            itemCount: shown.length + 1,
+            itemCount: shown.length,
             itemBuilder: (context, i) {
-              if (i == shown.length) {
-                return BrandTile(
-                  service: Service(
-                    _expanded ? 'Less' : 'More',
-                    icon: _expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.add_circle_outline_rounded,
-                  ),
-                  onTap: () => setState(() => _expanded = !_expanded),
-                );
-              }
               final tile = BrandTile(service: shown[i]);
-              // Newly revealed tiles rise in, staggered.
-              return i >= 7
-                  ? Reveal(index: i - 7, rise: 12, child: tile)
+              return i >= 8
+                  ? Reveal(index: i - 8, rise: 12, child: tile)
                   : tile;
             },
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Recent activity ───────────────────────────────────────────────────────
-
-class _RecentActivity extends StatelessWidget {
-  const _RecentActivity();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(
-          title: 'Recent',
-          payoff: 'activity',
-          action: 'Transaction details',
-          onAction: () {},
-        ),
-        const SizedBox(height: TB.s12),
-        Container(
-          decoration: BoxDecoration(
-            color: TB.surfaceRaised,
-            borderRadius: BorderRadius.circular(TB.rLg),
-            boxShadow: TB.shadowSoft,
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < recentTxns.length; i++) ...[
-                if (i > 0)
-                  const Divider(
-                    height: 1,
-                    indent: 72,
-                    endIndent: 16,
-                    color: TB.hairline,
-                  ),
-                _TxnRow(txn: recentTxns[i]),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TxnRow extends StatelessWidget {
-  const _TxnRow({required this.txn});
-
-  final Txn txn;
-
-  @override
-  Widget build(BuildContext context) {
-    final incoming = txn.amount > 0;
-    return Pressable(
-      scale: 0.98,
-      onTap: () {},
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: TB.s16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: incoming ? TB.brandMist : TB.surface,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                txn.icon,
-                size: 20,
-                color: incoming ? TB.brandInk : TB.inkSoft,
-              ),
-            ),
-            const SizedBox(width: TB.s12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    txn.title,
-                    style: TType.bodyStrong.copyWith(color: TB.ink),
-                  ),
-                  Text(txn.subtitle, style: TType.caption),
-                ],
-              ),
-            ),
-            Text(
-              '${incoming ? '+' : '−'}${txn.amount.abs().toStringAsFixed(2)}',
-              style: TType.bodyStrong.copyWith(
-                color: incoming ? TB.brandInk : TB.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

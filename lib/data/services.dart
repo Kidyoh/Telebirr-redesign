@@ -92,7 +92,11 @@ const paymentCategories = <PaymentCategory>[
 ];
 
 // ── Apps ────────────────────────────────────────────────────────────────
+/// Engage moved from the tab bar into Apps.
+const engageApp = Service('Engage', logo: '$_b/engage.png');
+
 const miniApps = <Service>[
+  engageApp,
   Service('My Ethiotel', logo: '$_b/ethiotelecom_mark.png'),
   Service('telebirrRemit', icon: Icons.public_rounded),
   Service('tele-Online Fixed', icon: Icons.router_outlined),
@@ -155,26 +159,57 @@ const accountGroups = <String, List<AccountItem>>{
 
 // ── Recent contacts (made-up example data) ──────────────────────────────
 class Contact {
-  const Contact(this.name, this.phone, this.tint);
+  const Contact(this.name, this.phone, this.tint, {this.lastSent = ''});
 
   final String name;
   final String phone;
   final Color tint;
+
+  /// When you last sent to this person, e.g. "Nov 12".
+  final String lastSent;
+
+  String get firstName => name.split(' ').first;
 
   String get initials => name
       .split(' ')
       .where((p) => p.isNotEmpty)
       .take(2)
       .map((p) => p[0])
-      .join();
+      .join()
+      .toUpperCase();
 }
 
 const recentContacts = <Contact>[
-  Contact('Abebe Kebede', '+251 91 120 4471', Color(0xFFCDEBD3)),
-  Contact('Hanna Tesfaye', '+251 92 845 1203', Color(0xFFFFDBC5)),
-  Contact('Selam Girma', '+251 94 330 9182', Color(0xFFCDE8F5)),
-  Contact('Dawit Alemu', '+251 91 667 0215', Color(0xFFE6D9F5)),
-  Contact('Meron Haile', '+251 93 512 7740', Color(0xFFFDE99B)),
+  Contact(
+    'Abebe Kebede',
+    '+251 91 120 4471',
+    Color(0xFFCDEBD3),
+    lastSent: 'Oct 18',
+  ),
+  Contact(
+    'Hanna Tesfaye',
+    '+251 92 845 1203',
+    Color(0xFFFFDBC5),
+    lastSent: 'Oct 12',
+  ),
+  Contact(
+    'Selam Girma',
+    '+251 94 330 9182',
+    Color(0xFFCDE8F5),
+    lastSent: 'Oct 3',
+  ),
+  Contact(
+    'Dawit Alemu',
+    '+251 91 667 0215',
+    Color(0xFFE6D9F5),
+    lastSent: 'Sep 27',
+  ),
+  Contact(
+    'Meron Haile',
+    '+251 93 512 7740',
+    Color(0xFFFDE99B),
+    lastSent: 'Sep 20',
+  ),
 ];
 
 /// A recent transaction for the activity strip (made-up example data).

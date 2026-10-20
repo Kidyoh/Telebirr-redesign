@@ -9,7 +9,7 @@ import 'package:flutter/painting.dart';
 /// hero, the blue Scan QR action and the orange "one app" ribbon.
 abstract final class TB {
   // ── Paper theme (house) ────────────────────────────────────────────────
-  static const ground = Color(0xFFF1F2EC); // warm near-neutral, a hint of leaf
+  static const ground = Color(0xFFF4F5F2); // light neutral, a hint of leaf
   static const surface = Color(0xFFF8F8F4);
   static const surfaceRaised = Color(0xFFFFFFFF);
   static const ink = Color(0xFF1C1B19);
@@ -20,6 +20,12 @@ abstract final class TB {
   static const button = Color(0xFF1C1B19);
   static const onButton = Color(0xFFF2EFEA);
   static const featureCard = Color(0xFF1C1B19);
+
+  /// The near-black of the balance card, the Send Money header and the
+  /// Send Money quick action.
+  static const night = Color(0xFF151515);
+  static const keyFill = Color(0xFFFFFFFF);
+  static const keyRim = Color(0xFFEDEEEA);
   static const onFeature = Color(0xFFF2EFEA);
   static const scrim = Color(0x99000000);
 
@@ -32,6 +38,7 @@ abstract final class TB {
   /// Text-safe green for small labels on light grounds (4.6:1 on surface).
   static const brandInk = Color(0xFF3D6B10);
   static const brandMist = Color(0xFFE6F2D6);
+  static const brandBright = Color(0xFFB8E65A);
 
   /// The Scan QR blue: the one hero CTA, which glows.
   static const accent = Color(0xFF0A7FD6);

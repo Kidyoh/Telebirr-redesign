@@ -13,7 +13,7 @@ class EngageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
-    return DecoratedBox(
+    final body = DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
           center: Alignment(0, -0.55),
@@ -27,16 +27,24 @@ class EngageScreen extends StatelessWidget {
           TB.s20,
           pad.top + TB.s12,
           TB.s20,
-          pad.bottom + 120,
+          pad.bottom + TB.s32,
         ),
         children: [
           Row(
             children: [
-              _RoundIcon(icon: Icons.menu_rounded, label: 'Menu'),
+              _RoundIcon(
+                icon: Icons.arrow_back_rounded,
+                label: 'Back',
+                onTap: () => Navigator.of(context).pop(),
+              ),
               const Spacer(),
               Text('ENGAGE', style: TType.labelCaps),
               const Spacer(),
-              _RoundIcon(icon: Icons.search_rounded, label: 'Search'),
+              _RoundIcon(
+                icon: Icons.search_rounded,
+                label: 'Search',
+                onTap: () {},
+              ),
             ],
           ),
           const SizedBox(height: TB.s24),
@@ -137,21 +145,27 @@ class EngageScreen extends StatelessWidget {
         ],
       ),
     );
+    return Scaffold(backgroundColor: TB.ground, body: body);
   }
 }
 
 class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({required this.icon, required this.label});
+  const _RoundIcon({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Pressable(
       scale: Motion.pressRound,
       semanticLabel: label,
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         width: 44,
         height: 44,

@@ -74,7 +74,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(TB.s20, TB.s12, TB.s20, bottom + 120),
+          padding: EdgeInsets.fromLTRB(TB.s20, TB.s12, TB.s20, bottom + TB.s32),
           sliver: SliverList.builder(
             itemCount: paymentCategories.length,
             itemBuilder: (context, i) {

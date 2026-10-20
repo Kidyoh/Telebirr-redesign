@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../data/services.dart';
+import '../data/wallet.dart';
 import '../theme/tokens.dart';
 import '../theme/type.dart';
-import '../widgets/glass.dart';
 import '../widgets/pressable.dart';
 import '../widgets/qr_sheet.dart';
 import '../widgets/reveal.dart';
-import '../widgets/ripple_backdrop.dart';
+import '../widgets/wave_card.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -29,7 +29,7 @@ class _AccountScreenState extends State<AccountScreen> {
       slivers: [
         const SliverToBoxAdapter(child: _ProfileHero()),
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(TB.s20, TB.s24, TB.s20, bottom + 120),
+          padding: EdgeInsets.fromLTRB(TB.s20, TB.s24, TB.s20, bottom + TB.s32),
           sliver: SliverList.list(
             children: [
               for (final entry in accountGroups.entries) ...[
@@ -106,124 +106,122 @@ class _ProfileHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        bottom: Radius.circular(TB.r3xl),
-      ),
-      child: RippleBackdrop(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(TB.s20, top + TB.s20, TB.s20, TB.s28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Reveal(
-                child: Text(
-                  'ACCOUNT',
-                  style: TType.eyebrow.copyWith(
-                    color: Colors.white.withValues(alpha: 0.92),
-                  ),
-                ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(TB.s20, top + TB.s16, TB.s20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Reveal(
+            child: Text(
+              'SETTING',
+              style: TType.eyebrow.copyWith(color: TB.inkFaint),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Reveal(
+            index: 1,
+            child: Text(
+              'Your account',
+              style: TType.title1.copyWith(
+                color: TB.ink,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: TB.s20),
-              Reveal(
-                index: 1,
-                child: GlassPanel(
-                  radius: TB.rXl,
-                  fill: const Color(0x2EFFFFFF),
-                  padding: const EdgeInsets.all(TB.s16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            width: 3,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: TB.brand,
-                          size: 38,
-                        ),
-                      ),
-                      const SizedBox(width: TB.s16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'Kidus',
-                                  style: TType.title1.copyWith(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: TB.s8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: TB.ribbon,
-                                    borderRadius: BorderRadius.circular(
-                                      TB.rPill,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Level 3',
-                                    style: TType.micro.copyWith(
-                                      color: TB.ribbonInk,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '+251 9•• ••• 916',
-                              style: TType.body.copyWith(
-                                color: Colors.white,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Pressable(
-                        scale: Motion.pressRound,
-                        haptic: HapticKind.light,
-                        semanticLabel: 'My QR code',
-                        onTap: () => showQrSheet(context),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
+            ),
+          ),
+          const SizedBox(height: TB.s16),
+          Reveal(
+            index: 2,
+            child: WaveCard(
+              height: 150,
+              waveDepth: 0.5,
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 3,
+                            ),
                           ),
                           child: const Icon(
-                            Icons.qr_code_2_rounded,
+                            Icons.person_rounded,
                             color: TB.brandDeep,
-                            size: 26,
+                            size: 32,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const Spacer(),
+                        Pressable(
+                          scale: Motion.pressRound,
+                          haptic: HapticKind.light,
+                          semanticLabel: 'My QR code',
+                          onTap: () => showQrSheet(context),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_2_rounded,
+                              color: TB.night,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Text(
+                          Wallet.ownerName,
+                          style: TType.title2.copyWith(color: Colors.white),
+                        ),
+                        const SizedBox(width: TB.s8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: TB.ribbon,
+                            borderRadius: BorderRadius.circular(TB.rPill),
+                          ),
+                          child: Text(
+                            'Level 3',
+                            style: TType.micro.copyWith(
+                              color: TB.ribbonInk,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          Wallet.ownerPhoneMasked,
+                          style: TType.caption.copyWith(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
