@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/services.dart';
@@ -57,6 +58,10 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       context,
       to: recentContacts[_contact],
       amount: _value.toDouble(),
+      // Keep the keypad in step with the ruler if the sheet is closed.
+      onAmountChanged: (v) {
+        if (mounted) setState(() => _amount = v.round().toString());
+      },
     );
     if (sent == true && mounted) Navigator.of(context).pop();
   }
@@ -535,6 +540,7 @@ Future<bool?> showTransferSheet(
   BuildContext context, {
   required Contact to,
   required double amount,
+  ValueChanged<double>? onAmountChanged,
 }) {
   return showGeneralDialog<bool>(
     context: context,
@@ -543,7 +549,11 @@ Future<bool?> showTransferSheet(
     barrierLabel: 'Close',
     barrierColor: Colors.transparent,
     transitionDuration: Motion.slow,
-    pageBuilder: (_, _, _) => _TransferSheet(to: to, amount: amount),
+    pageBuilder: (_, _, _) => _TransferSheet(
+      to: to,
+      amount: amount,
+      onAmountChanged: onAmountChanged,
+    ),
     transitionBuilder: (context, a, _, child) {
       final t = CurvedAnimation(
         parent: a,
@@ -580,13 +590,18 @@ Future<bool?> showTransferSheet(
   );
 }
 
-enum _Stage { confirm, sending, done }
+enum _Stage { confirm, sending, leaving, done }
 
 class _TransferSheet extends StatefulWidget {
-  const _TransferSheet({required this.to, required this.amount});
+  const _TransferSheet({
+    required this.to,
+    required this.amount,
+    this.onAmountChanged,
+  });
 
   final Contact to;
   final double amount;
+  final ValueChanged<double>? onAmountChanged;
 
   @override
   State<_TransferSheet> createState() => _TransferSheetState();
@@ -595,15 +610,25 @@ class _TransferSheet extends StatefulWidget {
 class _TransferSheetState extends State<_TransferSheet> {
   _Stage _stage = _Stage.confirm;
   final _note = TextEditingController();
+  late double _amount = widget.amount;
   late final DateTime _at;
   late final String _txnId;
 
-  double get _total => widget.amount + Wallet.fee;
+  double get _total => _amount + Wallet.fee;
+
+  /// The most you can send and still cover the fee.
+  double get _max =>
+      math.max(1, (Wallet.balance.value - Wallet.fee).floorToDouble());
 
   @override
   void dispose() {
     _note.dispose();
     super.dispose();
+  }
+
+  void _setAmount(double v) {
+    setState(() => _amount = v);
+    widget.onAmountChanged?.call(v);
   }
 
   Future<void> _confirm() async {
@@ -616,6 +641,11 @@ class _TransferSheetState extends State<_TransferSheet> {
     _txnId = 'TB${_at.millisecondsSinceEpoch}';
     Wallet.balance.value -= _total;
     haptic(HapticKind.heavy);
+    // Clear the confirm content first, then let the sheet resize and the
+    // receipt build itself in, so the two never overlap.
+    setState(() => _stage = _Stage.leaving);
+    await Future.delayed(Motion.fast);
+    if (!mounted) return;
     setState(() => _stage = _Stage.done);
   }
 
@@ -623,6 +653,7 @@ class _TransferSheetState extends State<_TransferSheet> {
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final leaving = _stage == _Stage.leaving;
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
@@ -638,45 +669,31 @@ class _TransferSheetState extends State<_TransferSheet> {
           clipBehavior: Clip.antiAlias,
           elevation: 0,
           child: AnimatedSize(
-            duration: Motion.slow,
-            curve: Motion.easeExpo,
+            duration: Motion.medium,
+            curve: Motion.easeOut,
             alignment: Alignment.bottomCenter,
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
-              child: AnimatedSwitcher(
-                duration: Motion.slow,
-                switchInCurve: Motion.easeExpo,
-                switchOutCurve: Motion.easeOut,
-                transitionBuilder: (c, a) => FadeTransition(
-                  opacity: a,
-                  child: SlideTransition(
-                    position: Tween(
-                      begin: const Offset(0, 0.06),
-                      end: Offset.zero,
-                    ).animate(a),
-                    child: c,
-                  ),
-                ),
-                child: _stage == _Stage.done
-                    ? _Receipt(
-                        key: const ValueKey('done'),
-                        to: widget.to,
-                        amount: widget.amount,
-                        at: _at,
-                        txnId: _txnId,
-                        onDone: () => Navigator.of(context).pop(true),
-                      )
-                    : _Confirm(
-                        key: const ValueKey('confirm'),
-                        to: widget.to,
-                        amount: widget.amount,
-                        note: _note,
-                        sending: _stage == _Stage.sending,
-                        onConfirm: _confirm,
-                        onClose: () => Navigator.of(context).pop(),
-                      ),
-              ),
+              child: _stage == _Stage.done
+                  ? _Receipt(
+                      to: widget.to,
+                      amount: _amount,
+                      at: _at,
+                      txnId: _txnId,
+                      onDone: () => Navigator.of(context).pop(true),
+                    )
+                  : _Confirm(
+                      to: widget.to,
+                      amount: _amount,
+                      max: _max,
+                      note: _note,
+                      sending: _stage != _Stage.confirm,
+                      leaving: leaving,
+                      onAmountChanged: _setAmount,
+                      onConfirm: _confirm,
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
             ),
           ),
         ),
@@ -687,19 +704,26 @@ class _TransferSheetState extends State<_TransferSheet> {
 
 class _Confirm extends StatelessWidget {
   const _Confirm({
-    super.key,
     required this.to,
     required this.amount,
+    required this.max,
     required this.note,
     required this.sending,
+    required this.leaving,
+    required this.onAmountChanged,
     required this.onConfirm,
     required this.onClose,
   });
 
   final Contact to;
   final double amount;
+  final double max;
   final TextEditingController note;
   final bool sending;
+
+  /// Fading out for the receipt; the button stays so it can carry over.
+  final bool leaving;
+  final ValueChanged<double> onAmountChanged;
   final VoidCallback onConfirm;
   final VoidCallback onClose;
 
@@ -707,61 +731,97 @@ class _Confirm extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: Pressable(
-            scale: Motion.pressRound,
-            semanticLabel: 'Close',
-            onTap: onClose,
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: TB.keyRim),
-              ),
-              child: const Icon(Icons.close_rounded, size: 16, color: TB.ink),
+        AnimatedOpacity(
+          opacity: leaving ? 0 : 1,
+          duration: Motion.fast,
+          curve: Motion.easeOut,
+          child: AnimatedSlide(
+            offset: leaving ? const Offset(0, 0.02) : Offset.zero,
+            duration: Motion.fast,
+            curve: Motion.easeOut,
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Pressable(
+                    scale: Motion.pressRound,
+                    semanticLabel: 'Close',
+                    onTap: onClose,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: TB.keyRim),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: TB.ink,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: TB.s8),
+                Text(
+                  'Confirm Transaction',
+                  style: TType.title2.copyWith(color: TB.ink, fontSize: 19),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Please confirm your transaction\nbefore sending to this account',
+                  textAlign: TextAlign.center,
+                  style: TType.caption.copyWith(
+                    color: TB.inkFaint,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: TB.s20),
+                IgnorePointer(
+                  ignoring: sending,
+                  child: _AmountDial(
+                    initial: amount,
+                    min: 1,
+                    max: max,
+                    onChanged: onAmountChanged,
+                  ),
+                ),
+                const SizedBox(height: TB.s20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: TB.keyRim),
+                  ),
+                  child: Column(
+                    children: [
+                      _Line('Sending From', Wallet.ownerName),
+                      _Line('Sending To', to.name),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: TB.s12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    children: [
+                      _Line('Fee', Wallet.fee.toStringAsFixed(2)),
+                      const _Line('Speed', 'Arrives Instantly'),
+                      _NoteLine(controller: note),
+                      _Line(
+                        'Total',
+                        formatEtb(amount + Wallet.fee),
+                        strong: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-        const SizedBox(height: TB.s8),
-        Text(
-          'Confirm Transaction',
-          style: TType.title2.copyWith(color: TB.ink, fontSize: 19),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Please confirm your transaction\nbefore sending to this account',
-          textAlign: TextAlign.center,
-          style: TType.caption.copyWith(color: TB.inkFaint, fontSize: 12.5),
-        ),
-        const SizedBox(height: TB.s24),
-        _CountUp(amount: amount),
-        const SizedBox(height: TB.s24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: TB.keyRim),
-          ),
-          child: Column(
-            children: [
-              _Line('Sending From', Wallet.ownerName),
-              _Line('Sending To', to.name),
-            ],
-          ),
-        ),
-        const SizedBox(height: TB.s12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Column(
-            children: [
-              _Line('Fee', Wallet.fee.toStringAsFixed(2)),
-              const _Line('Speed', 'Arrives Instantly'),
-              _NoteLine(controller: note),
-              _Line('Total', formatEtb(amount + Wallet.fee), strong: true),
-            ],
           ),
         ),
         const SizedBox(height: TB.s24),
@@ -775,76 +835,196 @@ class _Confirm extends StatelessWidget {
   }
 }
 
-/// The amount counting up over a ruler that scrolls into place.
-class _CountUp extends StatelessWidget {
-  const _CountUp({required this.amount});
+/// The amount over a ruler. It counts up into place when the sheet opens,
+/// then you can drag or fling the ruler to adjust it, one birr per tick,
+/// with a tick of haptics as each birr passes the needle.
+class _AmountDial extends StatefulWidget {
+  const _AmountDial({
+    required this.initial,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
 
-  final double amount;
+  final double initial;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  @override
+  State<_AmountDial> createState() => _AmountDialState();
+}
+
+class _AmountDialState extends State<_AmountDial>
+    with SingleTickerProviderStateMixin {
+  static const _gap = 9.0;
+
+  late final AnimationController _c = AnimationController.unbounded(vsync: this)
+    ..addListener(_onTick);
+
+  bool _interactive = false;
+  bool _touched = false;
+  late int _last = widget.initial.round();
+
+  @override
+  void initState() {
+    super.initState();
+    _c
+        .animateTo(
+          widget.initial,
+          duration: const Duration(milliseconds: 1100),
+          curve: Motion.easeExpo,
+        )
+        .whenComplete(() => _interactive = true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _onTick() {
+    final v = _c.value;
+    // Stop a fling at either end instead of running past it.
+    if (_interactive && (v < widget.min || v > widget.max)) {
+      _c.stop();
+      _c.value = v.clamp(widget.min, widget.max);
+      haptic(HapticKind.light);
+      return;
+    }
+    final r = v.round();
+    if (_interactive && r != _last) {
+      _last = r;
+      haptic(HapticKind.selection);
+      widget.onChanged(r.toDouble());
+    }
+  }
+
+  void _dragStart(DragStartDetails _) {
+    if (!_interactive) return;
+    _c.stop();
+    if (!_touched) setState(() => _touched = true);
+  }
+
+  void _dragUpdate(DragUpdateDetails d) {
+    if (!_interactive) return;
+    // Dragging left moves the ruler left, which brings bigger numbers in.
+    _c.value = (_c.value - d.delta.dx / _gap).clamp(widget.min, widget.max);
+  }
+
+  void _dragEnd(DragEndDetails d) {
+    if (!_interactive) return;
+    final v = -d.velocity.pixelsPerSecond.dx / _gap;
+    if (v.abs() < 4) {
+      _snap();
+      return;
+    }
+    _c.animateWith(FrictionSimulation(0.08, _c.value, v)).whenComplete(_snap);
+  }
+
+  void _snap() {
+    final target = _c.value.round().toDouble().clamp(widget.min, widget.max);
+    _c.animateTo(target, duration: Motion.fast, curve: Motion.easeOut);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1100),
-      curve: Motion.easeExpo,
-      builder: (context, t, _) => Column(
-        children: [
-          SizedBox(
-            width: 170,
-            height: 30,
-            child: CustomPaint(painter: _RulerPainter(1 - t)),
-          ),
-          const SizedBox(height: TB.s8),
-          Text(
-            formatEtb(amount * t, decimals: amount % 1 != 0),
-            style: TType.numeralHero.copyWith(
-              fontSize: 44,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -1,
-              color: TB.ink,
-            ),
-          ),
-        ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: _dragStart,
+      onHorizontalDragUpdate: _dragUpdate,
+      onHorizontalDragEnd: _dragEnd,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final v = _c.value;
+          return Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 34,
+                child: CustomPaint(painter: _RulerPainter(v, _gap)),
+              ),
+              const SizedBox(height: TB.s8),
+              Text(
+                formatEtb(v.roundToDouble(), decimals: false),
+                style: TType.numeralHero.copyWith(
+                  fontSize: 44,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1,
+                  color: TB.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              AnimatedOpacity(
+                opacity: _touched ? 0 : 1,
+                duration: Motion.medium,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.swap_horiz_rounded,
+                      size: 14,
+                      color: TB.inkFaint,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Drag the ruler to adjust',
+                      style: TType.micro.copyWith(
+                        color: TB.inkFaint,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class _RulerPainter extends CustomPainter {
-  _RulerPainter(this.offset);
+  _RulerPainter(this.value, this.gap);
 
-  /// 1 → ticks shifted fully right, 0 → settled.
-  final double offset;
+  /// The amount under the needle; whole birr sit on ticks.
+  final double value;
+  final double gap;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const gap = 7.0;
     final mid = size.width / 2;
-    final shift = offset * gap * 12;
+    final base = value.floor();
+    final frac = value - base;
+    final count = (mid / gap).ceil() + 1;
     final p = Paint()
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 1.4;
-    for (var i = -14; i <= 14; i++) {
-      final x = mid + i * gap + shift % (gap * 5);
+    for (var i = -count; i <= count; i++) {
+      final n = base + i;
+      if (n < 0) continue;
+      final x = mid + (i - frac) * gap;
       if (x < 0 || x > size.width) continue;
       final edge = 1 - ((x - mid).abs() / mid).clamp(0.0, 1.0);
-      final major = i % 5 == 0;
-      final h = major ? 14.0 : 9.0;
-      p.color = TB.inkFaint.withValues(alpha: 0.15 + 0.45 * edge);
+      final h = n % 10 == 0 ? 18.0 : (n % 5 == 0 ? 13.0 : 8.0);
+      p.color = TB.inkFaint.withValues(alpha: 0.08 + 0.5 * edge * edge);
       canvas.drawLine(Offset(x, size.height - h), Offset(x, size.height), p);
     }
     canvas.drawLine(
-      Offset(mid, 0),
+      Offset(mid, 2),
       Offset(mid, size.height),
       Paint()
         ..color = TB.ink
-        ..strokeWidth = 2
+        ..strokeWidth = 2.2
         ..strokeCap = StrokeCap.round,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _RulerPainter old) => old.offset != offset;
+  bool shouldRepaint(covariant _RulerPainter old) => old.value != value;
 }
 
 class _Line extends StatelessWidget {
@@ -937,11 +1117,15 @@ class _GreenButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.loading = false,
+    this.collapsed = false,
   });
 
   final String label;
   final VoidCallback? onTap;
   final bool loading;
+
+  /// Round, with no label (the shape it has while loading).
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -953,7 +1137,7 @@ class _GreenButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: Motion.medium,
         curve: Motion.easeExpo,
-        width: loading ? 54 : 200,
+        width: loading || collapsed ? 54 : 200,
         height: 54,
         decoration: BoxDecoration(
           color: TB.brand,
@@ -979,6 +1163,13 @@ class _GreenButton extends StatelessWidget {
                     color: Colors.white,
                   ),
                 )
+              : collapsed
+              ? const Icon(
+                  Icons.check_rounded,
+                  key: ValueKey('check'),
+                  color: Colors.white,
+                  size: 24,
+                )
               : Text(
                   label,
                   key: const ValueKey('label'),
@@ -993,7 +1184,6 @@ class _GreenButton extends StatelessWidget {
 
 class _Receipt extends StatefulWidget {
   const _Receipt({
-    super.key,
     required this.to,
     required this.amount,
     required this.at,
@@ -1013,6 +1203,17 @@ class _Receipt extends StatefulWidget {
 
 class _ReceiptState extends State<_Receipt> {
   bool _copied = false;
+
+  /// Done starts as the round spinner Confirm became, then widens.
+  bool _wide = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Motion.medium, () {
+      if (mounted) setState(() => _wide = true);
+    });
+  }
 
   static const _months = [
     'Jan',
@@ -1099,33 +1300,47 @@ class _ReceiptState extends State<_Receipt> {
         const SizedBox(height: TB.s16),
         Reveal(
           index: 4,
-          child: Text(
-            formatEtb(widget.amount + Wallet.fee),
-            style: TType.numeralHero.copyWith(
-              fontSize: 40,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -1,
-              color: TB.ink,
-            ),
+          child: Column(
+            children: [
+              // The total counts up as it arrives.
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: widget.amount + Wallet.fee),
+                duration: const Duration(milliseconds: 900),
+                curve: Motion.easeExpo,
+                builder: (context, v, _) => Text(
+                  formatEtb(v),
+                  style: TType.numeralHero.copyWith(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -1,
+                    color: TB.ink,
+                  ),
+                ),
+              ),
+              Text(
+                'Total Amount',
+                style: TType.caption.copyWith(color: TB.inkFaint, fontSize: 12),
+              ),
+            ],
           ),
         ),
-        Text(
-          'Total Amount',
-          style: TType.caption.copyWith(color: TB.inkFaint, fontSize: 12),
-        ),
         const SizedBox(height: TB.s20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Transaction details',
-            style: TType.bodyStrong.copyWith(color: TB.ink, fontSize: 14),
+        Reveal(
+          index: 5,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Transaction details',
+              style: TType.bodyStrong.copyWith(color: TB.ink, fontSize: 14),
+            ),
           ),
         ),
         const SizedBox(height: 4),
         for (var i = 0; i < rows.length; i++)
-          Reveal(index: 5 + i, rise: 10, child: rows[i]),
+          Reveal(index: 6 + i, rise: 10, child: rows[i]),
         const SizedBox(height: TB.s24),
-        _GreenButton(label: 'Done', onTap: widget.onDone),
+        // Stays exactly where Confirm was; only its label changes.
+        _GreenButton(label: 'Done', collapsed: !_wide, onTap: widget.onDone),
       ],
     );
   }

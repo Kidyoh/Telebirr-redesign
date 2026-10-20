@@ -25,8 +25,8 @@ The Home page and the Send Money flow follow a "Telebirr SuperApp – Home Page 
 
 - **Home** has a near-black balance card with the telebirr green wave across the top and a second green card peeking out underneath. The balance is hidden behind stars until you flip the switch on the card, and the QR icon on the card opens the scanner. Under the card are the Send Money and Airtime/Package quick actions, Recently Sent, the Zemen Gebeya banner and Financial Services.
 - **Send Money** has a dark header with your contacts and balance, a round keypad, and a green Send button. Tapping a person in Recently Sent opens it with them already picked.
-- **Confirm Transaction** slides up over a blurred screen. The amount counts up over a ruler, followed by the sender, recipient, fee, speed, an optional note and the total.
-- **Transaction Successful** replaces the confirm sheet in place, with a check that draws itself and the receipt details (status, time, date, a copyable transaction ID, amount and fee). Your balance updates on Home.
+- **Confirm Transaction** slides up over a blurred screen. The amount counts up over a ruler; drag or fling the ruler to adjust it one birr at a time, with a haptic tick per birr, and the total follows. Below are the sender, recipient, fee, speed, an optional note and the total.
+- **Transaction Successful** takes over the same sheet: Confirm shrinks into a spinner, turns into a check, the confirm details clear, and the receipt builds in from the top while its total counts up and the button widens into Done. It shows a check that draws itself and the receipt details (status, time, date, a copyable transaction ID, amount and fee). Your balance updates on Home.
 - **The tab bar** is Home, Payment, Apps, Analytics and Setting. Engage now lives in Apps, Account is now Setting, and Analytics is new.
 - There is no italic type anywhere in the app.
 
